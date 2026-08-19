@@ -35,7 +35,8 @@ import time
 
 import numpy as np
 
-from constants import AU, DAY, IMPACTOR_TYPES, J_PER_MEGATON
+from constants import (AU, DAY, IMPACTOR_TYPES, J_PER_MEGATON,
+                       MEAN_OCEAN_DEPTH)
 import orbital
 from orbital import (Elements, batch_closest_approach, capture_radius,
                      state_to_elements, earth_state)
@@ -211,8 +212,12 @@ def build_orbit_dataset(n_total: int = 60000, encounter_fraction: float = 0.45,
 # ---------------------------------------------------------------------------
 # Impact-effects dataset
 # ---------------------------------------------------------------------------
+# ``target_density`` is always the density the crater is actually excavated
+# from -- rock, even in the ocean, because the crater forms in the seafloor.
+# ``is_ocean`` carries the water separately, since its effect is not a density
+# at all but a rule: too small a crater never reaches the bottom.
 EFFECT_FEATURES = ["log_diameter", "density", "velocity_kms", "angle_deg",
-                   "log_mass", "log_energy_mt", "target_density"]
+                   "log_mass", "log_energy_mt", "target_density", "is_ocean"]
 
 EFFECT_TARGETS = [
     "log_energy_deposited_mt",
@@ -252,9 +257,11 @@ def build_effects_dataset(n: int = 200000, seed: int = 11, verbose: bool = True)
     # entry angle: the isotropic-flux distribution peaks at 45 degrees
     angle = np.degrees(np.arcsin(np.sqrt(rng.uniform(0, 1, n))))
     angle = np.clip(angle, 2.0, 90.0)
-    # target
-    target_choices = np.array([2500.0, 2750.0, 1000.0])
-    target_density = target_choices[rng.integers(0, 3, n)]
+    # target: sedimentary, crystalline, or ocean. An ocean impact still
+    # excavates rock, so the density fed to the crater law is rock either way.
+    kind = rng.integers(0, 3, n)
+    target_density = np.where(kind == 1, 2750.0, 2500.0)
+    is_ocean = (kind == 2).astype(float)
 
     if verbose:
         print(f"  integrating atmospheric entry for {n} impactors...")
@@ -273,6 +280,10 @@ def build_effects_dataset(n: int = 200000, seed: int = 11, verbose: bool = True)
                            angle, target_density)
     crater_d = np.where(airburst | (v_ground < 100.0), 0.0,
                         cr["final_diameter_m"])
+    # In open water, only an impactor that digs deeper than the water column
+    # leaves a seafloor crater; anything shallower spends itself making waves.
+    absorbed = (is_ocean > 0.5) & (cr["transient_depth_m"] < MEAN_OCEAN_DEPTH)
+    crater_d = np.where(absorbed, 0.0, crater_d)
 
     zb_m = entry["burst_altitude_m"]
     r20 = impact_mod.blast_radius(e_dep, 20000.0, zb_m) / 1000.0
@@ -287,7 +298,7 @@ def build_effects_dataset(n: int = 200000, seed: int = 11, verbose: bool = True)
 
     X = np.column_stack([
         np.log10(diameter), density, velocity / 1000.0, angle,
-        np.log10(mass), np.log10(e_init_mt), target_density,
+        np.log10(mass), np.log10(e_init_mt), target_density, is_ocean,
     ])
 
     def lg(v):

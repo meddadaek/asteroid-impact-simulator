@@ -62,12 +62,16 @@ def models_available() -> bool:
 # ---------------------------------------------------------------------------
 # Effects: surrogate vs analytic
 # ---------------------------------------------------------------------------
-def _effect_features(diameter, density, velocity, angle, target_density):
+def _effect_features(diameter, density, velocity, angle, target):
+    """Feature row for the surrogate, matching the training encoding exactly."""
     mass = density * math.pi / 6.0 * diameter ** 3
     e_init_mt = 0.5 * mass * velocity ** 2 / J_PER_MEGATON
+    is_ocean = 1.0 if target == "water" else 0.0
+    # the crater forms in rock even under water, so never feed water density
+    rho_t = impact_mod.RHO_TARGET_ROCK if target == "crystalline"         else impact_mod.RHO_TARGET_SED
     return np.array([[math.log10(diameter), density, velocity / 1000.0, angle,
                       math.log10(max(mass, 1e-9)),
-                      math.log10(max(e_init_mt, 1e-30)), target_density]])
+                      math.log10(max(e_init_mt, 1e-30)), rho_t, is_ocean]])
 
 
 def predict_effects_ml(diameter, density, velocity, angle,
@@ -76,8 +80,7 @@ def predict_effects_ml(diameter, density, velocity, angle,
     m = _models()
     if m["effects_reg"] is None:
         return {}
-    rho_t = impact_mod.TARGETS.get(target, impact_mod.RHO_TARGET_SED)
-    X = _effect_features(diameter, density, velocity, angle, rho_t)
+    X = _effect_features(diameter, density, velocity, angle, target)
 
     p_airburst = float(m["effects_clf"].predict_proba(X)[0, 1])
     bundle = m["effects_reg"]

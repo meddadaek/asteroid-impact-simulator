@@ -103,6 +103,20 @@ Adding MOID was decisive:
 | PR-AUC | 0.161 | **0.443** |
 | Distance R² | 0.371 | **0.833** |
 
+Trained at full size (110,873 orbits, 8.2% positive) it reaches **ROC-AUC
+0.944**, **PR-AUC 0.542**, distance **R² 0.858** — and it is well calibrated,
+which is the claim that matters:
+
+| predicted | observed | n |
+|---|---|---|
+| 0.002 | 0.001 | 15,449 |
+| 0.167 | 0.173 | 1,754 |
+| 0.373 | 0.362 | 1,537 |
+| 0.589 | 0.582 | 1,271 |
+
+A predicted 37% really does strike 36% of the time, so the classifier's output
+can be read as an impact probability rather than just a ranking score.
+
 Positive examples are ~1-in-10-million under naive sampling, so orbits are drawn
 from a mixture: most bootstrapped from the real JPL catalogue with noise, the
 rest **constructed backwards** from a chosen encounter geometry — pick an epoch,
@@ -114,8 +128,11 @@ targets are *conditional* — a body that bursts in the air leaves no crater, on
 that reaches the ground has no burst altitude — so each is fitted only where it
 is defined and gated at inference by the airburst classifier.
 
-The UI shows the surrogate and the analytic physics **side by side with the error
-percentage**, so the model's accuracy is visible rather than asserted.
+Trained on 120,000 impactors, every target lands at **R² 0.979–0.9999**. The UI
+shows the surrogate and the analytic physics **side by side with the error
+percentage**, so the model's accuracy is visible rather than asserted — including
+the cases where it is poor, such as small iron bodies near the airburst
+threshold, where the surrogate can be tens of percent out on crater size.
 
 ### Honest limitations
 
