@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orbital Sentinel</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<canvas id="stage"></canvas>
+
+<div id="boot">
+  <div class="boot-inner">
+    <div class="boot-ring"></div>
+    <h1>ORBITAL SENTINEL</h1>
+    <p id="boot-status" data-i18n="boot.init">initialising</p>
+  </div>
+</div>
+
+<!-- ===================== LEFT: INPUT ===================== -->
+<aside id="panel-left" class="panel">
+  <header class="panel-head">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      <div>
+        <h1 data-i18n="app.title">ORBITAL SENTINEL</h1>
+        <p data-i18n="app.tagline">near-earth object impact modelling</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="mode-switch" role="tablist">
+    <button class="mode-btn active" data-mode="simple" role="tab" data-i18n="mode.simple">Simple</button>
+    <button class="mode-btn" data-mode="orbit" role="tab" data-i18n="mode.astronomer">Astronomer</button>
+  </div>
+
+  <div class="panel-body">
+
+    <!-- ---------- shared: the body ---------- -->
+    <section class="group">
+      <h2 data-i18n="group.impactor">Impactor</h2>
+
+      <label class="field">
+        <span class="lbl"><span data-i18n="field.diameter">Diameter</span> <b id="v-diameter">150 m</b></span>
+        <input type="range" id="in-diameter" min="0" max="4.3" step="0.01" value="2.176">
+        <span class="hint" data-i18n="field.diameterHint">1 m &mdash; 20 km (logarithmic)</span>
+      </label>
+
+      <label class="field">
+        <span class="lbl" data-i18n="field.composition">Composition</span>
+        <select id="in-material">
+          <option value="comet" data-i18n="mat.comet">Porous comet &middot; 500 kg/m&sup3;</option>
+          <option value="carbonaceous" data-i18n="mat.carbonaceous">Carbonaceous &middot; 1500</option>
+          <option value="stony" selected data-i18n="mat.stony">Stony (S-type) &middot; 3000</option>
+          <option value="stony_iron" data-i18n="mat.stony_iron">Stony-iron &middot; 5000</option>
+          <option value="iron" data-i18n="mat.iron">Iron (M-type) &middot; 7800</option>
+        </select>
+      </label>
+    </section>
+
+    <!-- ---------- simple mode ---------- -->
+    <div id="mode-simple">
+      <section class="group">
+        <h2 data-i18n="group.entry">Entry</h2>
+        <label class="field">
+          <span class="lbl"><span data-i18n="field.velocity">Velocity</span> <b id="v-velocity">19.0 km/s</b></span>
+          <input type="range" id="in-velocity" min="11.2" max="72" step="0.1" value="19">
+          <span class="hint" data-i18n="field.velocityHint">11.2 km/s escape &mdash; 72 km/s head-on limit</span>
+        </label>
+        <label class="field">
+          <span class="lbl"><span data-i18n="field.angle">Entry angle</span> <b id="v-angle">45&deg;</b></span>
+          <input type="range" id="in-angle" min="2" max="90" step="1" value="45">
+          <span class="hint" data-i18n="field.angleHint">from the horizontal; 45&deg; is most probable</span>
+        </label>
+      </section>
+
+      <section class="group">
+        <h2 data-i18n="group.impactPoint">Impact point</h2>
+        <p class="note" data-i18n="note.clickGlobe">Click anywhere on the globe to place it.</p>
+        <div class="coord-row">
+          <label class="mini"><span data-i18n="field.latitude">Latitude</span>
+            <input type="number" id="in-lat" value="36.75" min="-90" max="90" step="0.01"></label>
+          <label class="mini"><span data-i18n="field.longitude">Longitude</span>
+            <input type="number" id="in-lon" value="3.06" min="-180" max="180" step="0.01"></label>
+        </div>
+        <div id="terrain-readout" class="readout">&mdash;</div>
+      </section>
+    </div>
+
+    <!-- ---------- astronomer mode ---------- -->
+    <div id="mode-orbit" hidden>
+      <section class="group">
+        <h2 data-i18n="group.realObject">Real object</h2>
+        <div class="search-row">
+          <input type="search" id="neo-search" data-i18n-placeholder="note.searchNeo" placeholder="search 42,000 catalogued NEOs">
+        </div>
+        <div id="neo-list" class="neo-list"></div>
+      </section>
+
+      <section class="group">
+        <h2 data-i18n="group.elements">Orbital elements</h2>
+        <div class="el-grid">
+          <label class="mini"><span>a &middot; AU</span><input type="number" id="el-a" value="1.2" step="0.001"></label>
+          <label class="mini"><span>e</span><input type="number" id="el-e" value="0.35" step="0.001"></label>
+          <label class="mini"><span>i &middot; deg</span><input type="number" id="el-i" value="5" step="0.01"></label>
+          <label class="mini"><span>&Omega; &middot; deg</span><input type="number" id="el-om" value="120" step="0.01"></label>
+          <label class="mini"><span>&omega; &middot; deg</span><input type="number" id="el-w" value="60" step="0.01"></label>
+          <label class="mini"><span>M &middot; deg</span><input type="number" id="el-ma" value="0" step="0.01"></label>
+        </div>
+      </section>
+
+      <section class="group">
+        <h2 data-i18n="group.tracking">Tracking quality</h2>
+        <label class="field">
+          <select id="in-uncertainty">
+            <option value="precise" data-i18n="unc.precise">Decades of radar tracking</option>
+            <option value="good" data-i18n="unc.good">Well observed, multi-apparition</option>
+            <option value="moderate" selected data-i18n="unc.moderate">Several months of observation</option>
+            <option value="poor" data-i18n="unc.poor">Newly discovered, short arc</option>
+          </select>
+          <span class="hint" data-i18n="field.uncertaintyHint">sets the element error bars the Monte Carlo samples</span>
+        </label>
+        <label class="field">
+          <span class="lbl"><span data-i18n="field.clones">Clones</span> <b id="v-clones">3000</b></span>
+          <input type="range" id="in-clones" min="500" max="12000" step="500" value="3000">
+        </label>
+        <label class="check">
+          <input type="checkbox" id="in-force" checked>
+          <span data-i18n="note.forceImpact">If it misses, show where it <em>would</em> have struck</span>
+        </label>
+      </section>
+    </div>
+
+    <button id="run" class="run-btn">
+      <span class="run-label" data-i18n="btn.run">RUN SIMULATION</span>
+      <span class="run-spin"></span>
+    </button>
+
+    <section class="group presets">
+      <h2 data-i18n="group.historical">Historical</h2>
+      <div class="chips">
+        <button class="chip" data-preset="chelyabinsk" data-i18n="preset.chelyabinsk">Chelyabinsk 2013</button>
+        <button class="chip" data-preset="tunguska" data-i18n="preset.tunguska">Tunguska 1908</button>
+        <button class="chip" data-preset="barringer" data-i18n="preset.barringer">Barringer</button>
+        <button class="chip" data-preset="chicxulub" data-i18n="preset.chicxulub">Chicxulub</button>
+      </div>
+    </section>
+  </div>
+</aside>
+
+<!-- ===================== RIGHT: RESULTS ===================== -->
+<aside id="panel-right" class="panel" hidden>
+  <header class="panel-head result-head">
+    <div>
+      <p class="eyebrow" id="res-eyebrow" data-i18n="res.outcome">outcome</p>
+      <h2 id="res-title">&mdash;</h2>
+    </div>
+    <button id="close-right" class="icon-btn" aria-label="close">&times;</button>
+  </header>
+
+  <div class="panel-body">
+    <div id="severity" class="severity"></div>
+
+    <div class="stat-grid" id="stat-grid"></div>
+
+    <section class="group" id="sec-location">
+      <h2 data-i18n="res.site">Impact site</h2>
+      <div id="location-readout" class="readout"></div>
+    </section>
+
+    <section class="group" id="sec-rings">
+      <h2 data-i18n="res.rings">Damage rings</h2>
+      <div id="rings"></div>
+    </section>
+
+    <section class="group" id="sec-cities">
+      <h2 data-i18n="res.exposed">Population exposed</h2>
+      <div id="cities"></div>
+    </section>
+
+    <section class="group" id="sec-orbit" hidden>
+      <h2 data-i18n="res.encounter">Encounter</h2>
+      <div id="orbit-readout" class="readout"></div>
+    </section>
+
+    <section class="group" id="sec-mc" hidden>
+      <h2 data-i18n="res.probability">Impact probability</h2>
+      <div id="mc-readout"></div>
+    </section>
+
+    <section class="group" id="sec-model">
+      <h2 data-i18n="res.modelCheck">Surrogate vs physics</h2>
+      <p class="note" data-i18n="note.surrogate"></p>
+      <div id="model-table"></div>
+    </section>
+  </div>
+</aside>
+
+<!-- ===================== BOTTOM BAR ===================== -->
+<div id="viewbar">
+  <button class="view-btn active" data-view="earth" data-i18n="view.earth">Earth</button>
+  <button class="view-btn" data-view="system" data-i18n="view.orbit">Orbit</button>
+  <div class="spacer"></div>
+  <div class="lang-switch">
+    <button class="lang-btn active" data-lang="en">EN</button>
+    <button class="lang-btn" data-lang="ar">ع</button>
+  </div>
+  <div id="timing" class="timing"></div>
+</div>
+
+<div id="tooltip"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "/vendor/three.module.js",
+    "three/addons/": "/vendor/"
+  }
+}
+</script>
+<script type="module" src="/js/main.js"></script>
+</body>
+</html>

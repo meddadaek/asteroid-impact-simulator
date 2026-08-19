@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# pip scratch (kept off a full system drive during setup)
+.pip-tmp/
+.pip-cache/
+
+# Downloaded source data -- regenerate with: python app/fetch_data.py
+backend/data/neo_catalog.json
+backend/data/sentry.json
+backend/data/cities15000.txt
+backend/data/cities15000.zip
+
+# Derived caches -- regenerate with: python app/build_assets.py
+backend/data/neo_index.json
+backend/data/cities.npz
+backend/data/land_mask.npy
+
+# Trained models -- regenerate with: python app/train.py
+backend/models/*.pkl
+backend/models/*.log
+
+# Imagery and vendored runtime -- regenerate with: python app/fetch_data.py
+frontend/textures/*.jpg
+frontend/textures/*.png
+frontend/vendor/
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# stray pip caches from setup workarounds
+*.pip-cache/
+*.pip-tmp/
+.claude/
+backend/models/training_report.json
