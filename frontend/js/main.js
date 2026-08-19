@@ -71,8 +71,13 @@ const clock = new THREE.Clock();
 
 function animate() {
   requestAnimationFrame(animate);
-  const dt = Math.min(clock.getDelta(), 0.1);
+  frame(Math.min(clock.getDelta(), 0.1));
+}
 
+/** One simulation + render step. Split out from the rAF loop so it can be
+ *  driven manually -- browsers suspend requestAnimationFrame entirely while a
+ *  tab is hidden, which otherwise freezes the scene mid-animation. */
+function frame(dt) {
   if (earth) {
     earth.update(dt);
     earthGroup.rotation.y += dt * 0.014;
@@ -441,6 +446,19 @@ function presentImpact(res, sourceKey, opts = {}) {
   .forEach(sliderPct);
 syncDiameter();
 applyI18n();
+
+// Debug / capture handle. `step` advances the scene by a fixed timestep, which
+// is how documentation stills are rendered without a visible tab.
+window.__sentinel = {
+  stage,
+  step(dt = 1 / 60, count = 1) {
+    for (let i = 0; i < count; i++) frame(dt);
+  },
+  get earth() { return earth; },
+  get overlay() { return overlay; },
+  get lastResult() { return state.lastResult; },
+};
+
 boot().catch(e => {
   $('boot-status').textContent = `failed: ${e.message}`;
   console.error(e);

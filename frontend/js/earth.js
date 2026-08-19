@@ -121,8 +121,10 @@ void main() {
 
   // --- ocean specular ------------------------------------------------------
   vec3 H = normalize(L + V);
-  float spec = pow(max(dot(Nsurf, H), 0.0), 62.0);
-  dayColor += vec3(0.85, 0.93, 1.0) * spec * ocean * daylight * 1.5;
+  // a tight glint, not a broad wash -- a low exponent here paints a huge
+  // white blob across whole oceans
+  float spec = pow(max(dot(Nsurf, H), 0.0), 340.0);
+  dayColor += vec3(0.85, 0.93, 1.0) * spec * ocean * daylight * 0.85;
 
   // --- night side ----------------------------------------------------------
   vec3 lights = texture2D(nightMap, vUv).rgb;
@@ -164,26 +166,42 @@ const CORONA_FRAG = /* glsl */`
 uniform vec3  sunDirection;
 uniform vec3  glowColor;
 uniform float intensity;
-uniform float power;
+uniform float scaleHeight;   // in planet radii
+uniform float planetRadius;
 
 varying vec3 vNormal;
 varying vec3 vWorldPos;
 
+/* The glow is keyed to the *view ray*, not to this shell's own geometry.
+   Shading a back-facing shell by its silhouette puts peak brightness at the
+   shell's outer edge, which reads as a hard painted ring around the planet.
+   Instead: find how close each view ray passes to the planet centre, treat
+   that as the ray's minimum altitude, and give it an exponential atmospheric
+   density. The glow then peaks just above the true limb and decays smoothly
+   to nothing long before the shell boundary, so the shell is never visible. */
 void main() {
-  vec3 N = normalize(vNormal);
-  vec3 V = normalize(cameraPosition - vWorldPos);
-  vec3 L = normalize(sunDirection);
+  vec3 ro = cameraPosition;
+  vec3 rd = normalize(vWorldPos - ro);
+  vec3 L  = normalize(sunDirection);
 
-  // back-facing shell: the rim is where the surface turns away from the eye
-  float rim = pow(max(1.0 - abs(dot(N, V)), 0.0), power);
+  // perpendicular distance from the planet centre to this view ray
+  float t = dot(-ro, rd);
+  float h = length(ro + rd * t);
+  float altitude = max(h - planetRadius, 0.0);
 
-  // only the sunlit limb should glow, and it glows hardest looking through
-  // the atmosphere toward the sun (forward scattering)
-  float lit = smoothstep(-0.55, 0.35, dot(N, L));
-  float forward = pow(max(dot(V, -L), 0.0), 2.2);
+  float density = exp(-altitude / scaleHeight);
+  // rays that would strike the planet are handled by the depth buffer; taper
+  // them anyway so the terminator edge stays clean
+  density *= smoothstep(planetRadius * 0.985, planetRadius * 1.02, h);
 
-  float a = rim * intensity * (lit * 0.82 + forward * 0.55);
-  gl_FragColor = vec4(glowColor * (0.75 + forward * 0.9), a);
+  // the limb only glows where it is actually in sunlight
+  vec3 limbPoint = normalize(ro + rd * t);
+  float lit = smoothstep(-0.35, 0.30, dot(limbPoint, L));
+  // looking through the atmosphere toward the sun scatters hardest
+  float forward = pow(max(dot(rd, L), 0.0), 3.0);
+
+  float a = density * intensity * (lit * 0.9 + forward * lit * 0.8);
+  gl_FragColor = vec4(glowColor * (0.8 + forward * 1.1), clamp(a, 0.0, 1.0));
 }
 `;
 
@@ -235,15 +253,20 @@ export function createEarth(textures) {
   );
   group.add(clouds);
 
-  /* ---- 3. inner haze ---- */
-  const haze = new THREE.Mesh(
-    new THREE.SphereGeometry(EARTH_RADIUS * 1.014, 96, 64),
+  /* ---- 3 & 4. atmosphere ----
+     Two shells with different scale heights: a tight, bright inner band that
+     reads as the troposphere hugging the horizon, and a broad faint outer one
+     for the high-altitude scattering. Both are generously oversized so the
+     exponential falloff reaches zero well inside the geometry. */
+  const makeShell = (radius, colour, intensity, scaleHeight) => new THREE.Mesh(
+    new THREE.SphereGeometry(radius, 96, 64),
     new THREE.ShaderMaterial({
       uniforms: {
         sunDirection: { value: sunDirection },
-        glowColor:    { value: new THREE.Color(0x6fb4ff) },
-        intensity:    { value: 0.5 },
-        power:        { value: 3.4 },
+        glowColor:    { value: new THREE.Color(colour) },
+        intensity:    { value: intensity },
+        scaleHeight:  { value: scaleHeight },
+        planetRadius: { value: EARTH_RADIUS },
       },
       vertexShader: CORONA_VERT,
       fragmentShader: CORONA_FRAG,
@@ -253,26 +276,11 @@ export function createEarth(textures) {
       depthWrite: false,
     })
   );
+
+  const haze = makeShell(EARTH_RADIUS * 1.35, 0x8fc7ff, 0.95, 0.016);
   group.add(haze);
 
-  /* ---- 4. outer corona ---- */
-  const corona = new THREE.Mesh(
-    new THREE.SphereGeometry(EARTH_RADIUS * 1.09, 96, 64),
-    new THREE.ShaderMaterial({
-      uniforms: {
-        sunDirection: { value: sunDirection },
-        glowColor:    { value: new THREE.Color(0x3d7dff) },
-        intensity:    { value: 0.62 },
-        power:        { value: 2.1 },
-      },
-      vertexShader: CORONA_VERT,
-      fragmentShader: CORONA_FRAG,
-      side: THREE.BackSide,
-      blending: THREE.AdditiveBlending,
-      transparent: true,
-      depthWrite: false,
-    })
-  );
+  const corona = makeShell(EARTH_RADIUS * 1.75, 0x3f7fff, 0.55, 0.075);
   group.add(corona);
 
   return {

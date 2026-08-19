@@ -1,5 +1,7 @@
 # Orbital Sentinel
 
+*[النسخة العربية](README.ar.md)*
+
 An interactive near-Earth-object impact simulator. Enter an asteroid — either as
 physical properties or as real Keplerian orbital elements — and the app
 propagates its orbit, decides whether it strikes Earth, works out *where* on the
@@ -8,6 +10,17 @@ on it. The result is drawn on a photoreal 3D globe.
 
 Everything runs locally. No API keys, no accounts, no billing relationship with
 any service.
+
+![A 900 m impactor striking the US east coast: damage rings, incoming trajectory, and the lit limb](docs/images/01-impact-rings.png)
+
+*A 900 m stony impactor on the US east coast. Rings run from total destruction
+(67 km) out to window breakage (2,164 km), drawn as real spherical bands on the
+globe rather than a flat decal.*
+
+![The Chicxulub impactor reproduced: rings spanning a continent](docs/images/02-chicxulub.png)
+
+*The Chicxulub impactor at its historical parameters. The model puts the final
+crater at 164 km against the ~180 km measured in the rock.*
 
 ---
 

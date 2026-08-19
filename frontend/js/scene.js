@@ -23,6 +23,10 @@ export function createStage(canvas) {
     antialias: true,
     powerPreference: 'high-performance',
     stencil: false,
+    // Keeps the drawing buffer readable after a frame is presented, so the
+    // rendered globe can be exported with canvas.toDataURL(). Without it the
+    // buffer is undefined by the time any capture runs.
+    preserveDrawingBuffer: true,
   });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.setSize(innerWidth, innerHeight);
@@ -34,8 +38,12 @@ export function createStage(canvas) {
   const earthScene = new THREE.Scene();
   const systemScene = new THREE.Scene();
 
+  // The near/far ratio sets depth precision. A 0.005 near plane against a
+  // 4000 far plane leaves so few usable depth bits at the globe that surface
+  // decals a few kilometres up (the damage rings) z-fight into the planet and
+  // vanish. Controls clamp the camera at 1.24, so 0.05 is safely clear.
   const earthCam = new THREE.PerspectiveCamera(42, innerWidth / innerHeight,
-                                               0.005, 4000);
+                                               0.05, 3000);
   earthCam.position.set(0, 1.05, 3.15);
 
   const systemCam = new THREE.PerspectiveCamera(46, innerWidth / innerHeight,
@@ -67,12 +75,12 @@ export function createStage(canvas) {
   systemScene.add(new THREE.AmbientLight(0x223046, 0.7));
 
   /* ----------------------------------------------------------- starfield */
-  earthScene.add(makeStarfield(1600, 9000));
+  earthScene.add(makeStarfield(1800, 2200));
   systemScene.add(makeStarfield(9000, 26000));
 
   /* ---------------------------------------------------------------- sun */
   const sunSprite = makeSunSprite(120);
-  sunSprite.position.copy(sunLight.position).setLength(900);
+  sunSprite.position.copy(sunLight.position).setLength(700);
   earthScene.add(sunSprite);
 
   const sunBall = new THREE.Mesh(
@@ -192,7 +200,7 @@ function makeStarfield(count, radius) {
   geo.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
 
   const mat = new THREE.ShaderMaterial({
-    uniforms: { uScale: { value: innerHeight * 0.5 } },
+    uniforms: { uScale: { value: Math.min(devicePixelRatio, 2) } },
     vertexShader: /* glsl */`
       attribute float aSize;
       varying vec3 vColor;
@@ -200,7 +208,10 @@ function makeStarfield(count, radius) {
       void main() {
         vColor = color;
         vec4 mv = modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = aSize * (uScale / -mv.z) * 0.06;
+        // Stars are effectively at infinity, so their apparent size must not
+        // fall off with distance -- dividing by depth here made every star
+        // sub-pixel and the sky came out empty.
+        gl_PointSize = aSize * uScale;
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: /* glsl */`

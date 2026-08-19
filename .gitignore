@@ -39,3 +39,6 @@ Thumbs.db
 *.pip-tmp/
 .claude/
 backend/models/training_report.json
+
+# documentation renders are committed
+!docs/images/*.png
