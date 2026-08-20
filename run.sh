@@ -10,7 +10,7 @@ if [[ "${1:-}" == "--setup" ]] || [ ! -x "$PY" ]; then
   python3 -m venv "$ROOT/backend/.venv"
   PY="$ROOT/backend/.venv/bin/python"; [ -x "$PY" ] || PY="$ROOT/backend/.venv/Scripts/python.exe"
   "$PY" -m pip install -q --upgrade pip
-  "$PY" -m pip install -q -r "$ROOT/backend/requirements.txt"
+  "$PY" -m pip install -q -r "$ROOT/backend/requirements-build.txt"
   (cd "$ROOT/backend/app" && "$PY" fetch_data.py && "$PY" build_assets.py)
 fi
 

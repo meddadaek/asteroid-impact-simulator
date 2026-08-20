@@ -27,7 +27,7 @@ if ($Setup -or -not (Test-Path $py)) {
 
     Write-Host 'Installing dependencies...' -ForegroundColor Cyan
     & $py -m pip install -q --upgrade pip
-    & $py -m pip install -q -r (Join-Path $root 'backend\requirements.txt')
+    & $py -m pip install -q -r (Join-Path $root 'backend\requirements-build.txt')
 
     Push-Location (Join-Path $root 'backend\app')
     Write-Host 'Downloading catalogues and imagery...' -ForegroundColor Cyan
