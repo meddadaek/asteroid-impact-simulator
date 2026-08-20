@@ -69,9 +69,14 @@ async function boot() {
 /* ==================================================== the render loop === */
 const clock = new THREE.Clock();
 
+let paused = false;
+
 function animate() {
   requestAnimationFrame(animate);
-  frame(Math.min(clock.getDelta(), 0.1));
+  // While paused the loop keeps draining the clock but advances nothing, so
+  // manual stepping stays deterministic no matter how long a frame takes.
+  const dt = Math.min(clock.getDelta(), 0.1);
+  if (!paused) frame(dt);
 }
 
 /** One simulation + render step. Split out from the rAF loop so it can be
@@ -454,6 +459,8 @@ window.__sentinel = {
   step(dt = 1 / 60, count = 1) {
     for (let i = 0; i < count; i++) frame(dt);
   },
+  pause(on = true) { paused = on; },
+  get paused() { return paused; },
   get earth() { return earth; },
   get overlay() { return overlay; },
   get lastResult() { return state.lastResult; },

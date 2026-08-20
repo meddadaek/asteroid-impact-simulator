@@ -252,8 +252,13 @@ export function createOverlay(parent) {
     } else if (state.phase === 'flash') {
       const k = Math.min(state.t / 0.85, 1);
       state.traj.head.visible = false;
-      state.flash.scale.setScalar(0.02 + k * Math.max(state.maxRadius, 0.06) * 1.5);
-      state.flash.material.opacity = (1 - k) * 0.9;
+      // The fireball is a bright point that expands and dies, not a floodlight.
+      // Scaling it to the outermost damage ring and holding it near full
+      // opacity washes the entire globe white for a second or more, which hides
+      // the very rings the flash is supposed to introduce.
+      const reach = Math.min(Math.max(state.maxRadius, 0.05), 0.22);
+      state.flash.scale.setScalar(0.02 + k * reach);
+      state.flash.material.opacity = Math.pow(1 - k, 2.2) * 0.55;
       // rings bloom outward in sequence
       state.bands.forEach((b, i) => {
         const start = i * 0.075;
@@ -272,6 +277,9 @@ export function createOverlay(parent) {
       state.bands.forEach(b => {
         b.line.material.opacity = 0.55 + pulse * 0.3;
       });
+      // the approach path has served its purpose; let it fade out of the frame
+      state.traj.tube.material.opacity =
+        Math.max(0, state.traj.tube.material.opacity - dt * 0.55);
       state.marker.scale.setScalar(0.94 + pulse * 0.1);
       state.flash.material.opacity = 0;
     }

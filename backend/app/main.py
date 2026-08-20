@@ -39,6 +39,21 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
                    allow_headers=["*"])
 
 
+@app.middleware("http")
+async def no_cache_app_code(request, call_next):
+    """Keep the browser from pinning stale JavaScript.
+
+    ES modules are cached hard, and a module graph half-refreshed against a
+    changed sibling fails in confusing ways. The client is a few tens of
+    kilobytes served from the same host, so revalidating it every load costs
+    nothing and guarantees a deploy actually reaches the user.
+    """
+    response = await call_next(request)
+    if request.url.path.startswith(("/js/", "/css/")):
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+    return response
+
+
 def _density_for(spec) -> float:
     if getattr(spec, "density_kgm3", None):
         return float(spec.density_kgm3)

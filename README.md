@@ -11,6 +11,12 @@ on it. The result is drawn on a photoreal 3D globe.
 Everything runs locally. No API keys, no accounts, no billing relationship with
 any service.
 
+![Impact sequence: approach, detonation, and damage rings spreading across the globe](docs/video/impact.gif)
+
+*Real footage of the running app — the approach, the detonation flash, and the
+damage rings blooming outward. Rendered frame by frame from the WebGL canvas
+([full-quality MP4](docs/video/impact.mp4)).*
+
 ![A 900 m impactor striking the US east coast: damage rings, incoming trajectory, and the lit limb](docs/images/01-impact-rings.png)
 
 *A 900 m stony impactor on the US east coast. Rings run from total destruction
