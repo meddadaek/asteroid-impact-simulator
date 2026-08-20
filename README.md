@@ -17,6 +17,9 @@ any service.
 damage rings blooming outward. Rendered frame by frame from the WebGL canvas
 ([full-quality MP4](docs/video/impact.mp4)).*
 
+There is also a [48-second explainer](docs/video/explainer.mp4) covering the data,
+the physics validation, and the machine-learning results.
+
 ![A 900 m impactor striking the US east coast: damage rings, incoming trajectory, and the lit limb](docs/images/01-impact-rings.png)
 
 *A 900 m stony impactor on the US east coast. Rings run from total destruction
